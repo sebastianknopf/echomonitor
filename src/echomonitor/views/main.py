@@ -11,6 +11,7 @@ from echomonitor.services.api_client import ApiClient, ApiError
 from echomonitor.session.state import logout
 from echomonitor.views.availability import render_availability
 from echomonitor.views.dashboard import render_dashboard
+from echomonitor.views.conflicts import render_conflicts
 
 PAGE_KEY = "current_page"
 DEFAULT_PAGE = "Dashboard"
@@ -37,7 +38,7 @@ def render_main_view(client: ApiClient) -> None:
     renderers: dict[str, PageRenderer] = {
         "Dashboard": render_dashboard,
         "Availability": render_availability,
-        "Data Quality": _render_data_quality,
+        "Conflicts": render_conflicts,
     }
     renderers.get(page, render_dashboard)(client)
 
@@ -61,7 +62,7 @@ def _load_instance(client: ApiClient) -> str | None:
 
 def _render_navigation() -> None:
     """Render sidebar navigation as a simple list of entries."""
-    navigation_items = ("Dashboard", "Availability", "Data Quality")
+    navigation_items = ("Dashboard", "Availability", "Conflicts")
 
     for item in navigation_items:
         if st.button(
@@ -84,9 +85,3 @@ def _render_navigation() -> None:
         logout()
         st.session_state.pop(PAGE_KEY, None)
         st.rerun()
-
-
-def _render_data_quality(client: ApiClient) -> None:
-    """Render the initial data quality view."""
-    del client
-    st.caption("Data quality content will be added here.")
