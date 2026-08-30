@@ -1,15 +1,17 @@
 # EchoMonitor
 
-Minimal Streamlit client for the EchoGTFS monitoring API.
+Minimal Streamlit client for the EchoGTFS monitoring API. Fully AI based setup for demonstration purposes, so there's no license on this project.
+
+See [echomonitor.streamlit.io](https://echomonitor.streamlit.io) for a running instance.
 
 ## Requirements
 
 - Python 3.12+
 - Streamlit
 
-All runtime dependencies are declared in `pyproject.toml`. There is no separate `requirements.txt`.
+All runtime dependencies are declared in `pyproject.toml`.
 
-## Run locally
+## Run Locally
 
 ```bash
 python -m venv .venv
@@ -35,8 +37,6 @@ https://api.example.com/api/auth/token
 ```
 
 using the OAuth2 password flow.
-
-After successful authentication, a minimal authenticated main view is displayed.
 
 ## Streamlit Community Cloud
 
