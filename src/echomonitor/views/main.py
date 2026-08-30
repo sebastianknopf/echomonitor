@@ -6,6 +6,7 @@ from collections.abc import Callable
 
 import streamlit as st
 
+from echomonitor.components.loading import loading_screen
 from echomonitor.models.monitoring import parse_instance
 from echomonitor.services.api_client import ApiClient, ApiError
 from echomonitor.session.state import logout
@@ -23,24 +24,25 @@ def render_main_view(client: ApiClient) -> None:
     """Render the authenticated application shell."""
     st.session_state.setdefault(PAGE_KEY, DEFAULT_PAGE)
 
-    instance = _load_instance(client)
-    if instance is None:
-        return
+    with loading_screen():
+        instance = _load_instance(client)
+        if instance is None:
+            return
 
-    with st.sidebar:
-        st.title("EchoMonitor")
-        st.caption(instance)
-        _render_navigation()
+        with st.sidebar:
+            st.title("EchoMonitor")
+            st.caption(instance)
+            _render_navigation()
 
-    page = str(st.session_state[PAGE_KEY])
-    st.title(page)
+        page = str(st.session_state[PAGE_KEY])
+        st.title(page)
 
-    renderers: dict[str, PageRenderer] = {
-        "Dashboard": render_dashboard,
-        "Availability": render_availability,
-        "Conflicts": render_conflicts,
-    }
-    renderers.get(page, render_dashboard)(client)
+        renderers: dict[str, PageRenderer] = {
+            "Dashboard": render_dashboard,
+            "Availability": render_availability,
+            "Conflicts": render_conflicts,
+        }
+        renderers.get(page, render_dashboard)(client)
 
 
 def _load_instance(client: ApiClient) -> str | None:
