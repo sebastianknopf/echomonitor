@@ -9,6 +9,7 @@ import streamlit as st
 from echomonitor.models.monitoring import parse_instance
 from echomonitor.services.api_client import ApiClient, ApiError
 from echomonitor.session.state import logout
+from echomonitor.views.availability import render_availability
 from echomonitor.views.dashboard import render_dashboard
 
 PAGE_KEY = "current_page"
@@ -35,7 +36,7 @@ def render_main_view(client: ApiClient) -> None:
 
     renderers: dict[str, PageRenderer] = {
         "Dashboard": render_dashboard,
-        "Availability": _render_availability,
+        "Availability": render_availability,
         "Data Quality": _render_data_quality,
     }
     renderers.get(page, render_dashboard)(client)
@@ -67,7 +68,7 @@ def _render_navigation() -> None:
             item,
             key=f"nav_{item.lower().replace(' ', '_')}",
             type="primary" if st.session_state[PAGE_KEY] == item else "tertiary",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state[PAGE_KEY] = item
             st.rerun()
@@ -78,17 +79,11 @@ def _render_navigation() -> None:
         "Log Out",
         key="nav_log_out",
         type="tertiary",
-        use_container_width=True,
+        width="stretch",
     ):
         logout()
         st.session_state.pop(PAGE_KEY, None)
         st.rerun()
-
-
-def _render_availability(client: ApiClient) -> None:
-    """Render the initial availability view."""
-    del client
-    st.caption("Availability content will be added here.")
 
 
 def _render_data_quality(client: ApiClient) -> None:

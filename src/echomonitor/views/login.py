@@ -37,7 +37,7 @@ def render_login_view() -> None:
         submitted = st.form_submit_button(
             "Sign In",
             type="primary",
-            use_container_width=True,
+            width="stretch",
         )
 
     if not submitted:
