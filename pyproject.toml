@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "echomonitor"
 version = "0.1.0"
 description = "Minimal Streamlit client for the EchoGTFS monitoring API"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "altair>=6.2.2,<7",
     "pandas>=3.0.5,<4",
