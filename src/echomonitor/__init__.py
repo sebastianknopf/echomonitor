@@ -1,0 +1,1 @@
+"""EchoMonitor Streamlit application."""
