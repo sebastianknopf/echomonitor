@@ -9,10 +9,17 @@ import streamlit as st
 
 
 _LOADING_SCREEN_HTML = """
-<div class="echomonitor-loading-screen" role="status" aria-label="Loading">
-    <div class="echomonitor-loading-spinner"></div>
-</div>
 <style>
+@keyframes echomonitor-loading-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 .echomonitor-loading-screen {
     display: flex;
     align-items: center;
@@ -22,37 +29,34 @@ _LOADING_SCREEN_HTML = """
 }
 
 .echomonitor-loading-spinner {
+    box-sizing: border-box;
     width: 3rem;
     height: 3rem;
     border: 0.3rem solid rgba(23, 50, 77, 0.18);
     border-top-color: #17324D;
     border-radius: 50%;
-    animation: echomonitor-loading-spin 0.8s linear infinite;
-}
-
-@keyframes echomonitor-loading-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .echomonitor-loading-spinner {
-        animation-duration: 1.6s;
-    }
+    animation-name: echomonitor-loading-spin;
+    animation-duration: 0.8s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    transform-origin: 50% 50%;
+    will-change: transform;
 }
 </style>
+
+<div class="echomonitor-loading-screen" role="status" aria-label="Loading">
+    <div class="echomonitor-loading-spinner" aria-hidden="true"></div>
+</div>
 """
 
 
 @contextmanager
 def loading_screen() -> Iterator[None]:
-    """Display a centered circular loader while a view is rendered."""
+    """Display a centered rotating circular loader while a view is rendered."""
     placeholder = st.empty()
-    placeholder.markdown(
-        _LOADING_SCREEN_HTML,
-        unsafe_allow_html=True,
-    )
+
+    with placeholder.container():
+        st.html(_LOADING_SCREEN_HTML)
 
     try:
         yield

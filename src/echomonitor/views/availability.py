@@ -9,6 +9,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from echomonitor.components.charts import render_scrollable_x_chart
 from echomonitor.models.availability import (
     MonitoringRoute,
     RouteAvailability,
@@ -122,9 +123,9 @@ def _render_availability_content(
         st.info("No availability statistics are available.")
         return
 
-    st.altair_chart(
+    render_scrollable_x_chart(
         _build_availability_chart(availability),
-        width="stretch",
+        minimum_category_width=7,
     )
 
     st.write("")

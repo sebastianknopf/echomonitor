@@ -11,6 +11,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from echomonitor.components.charts import render_scrollable_x_chart
 from echomonitor.models.conflicts import (
     CONFLICT_TYPE_CODES,
     CONFLICT_TYPE_NAMES,
@@ -59,9 +60,9 @@ def _render_conflicts_content(client: ApiClient) -> None:
         st.info("No data sources are available for monitoring.")
         return
 
-    st.altair_chart(
+    render_scrollable_x_chart(
         _build_conflict_matrix(data_sources, conflicts),
-        width="stretch",
+        minimum_category_width=75,
     )
 
     st.write("")
@@ -250,7 +251,7 @@ def _render_conflict_card(conflict: Conflict) -> None:
                 font-weight: 600;
                 margin-bottom: 0.45rem;
             ">
-                {escape(conflict.message)} ({conflict.code})
+                {escape(conflict_type_name(conflict.code))} ({conflict.code})
             </div>
             <div style="
                 display: flex;
