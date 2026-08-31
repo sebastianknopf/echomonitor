@@ -2,8 +2,6 @@
 
 Minimal Streamlit client for the EchoGTFS monitoring API. Fully AI based setup for demonstration purposes, so there's no license on this project.
 
-See [echomonitor.streamlit.io](https://echomonitor.streamlit.io) for a running instance.
-
 ## Requirements
 
 - Python 3.12+

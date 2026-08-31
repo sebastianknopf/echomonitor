@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import streamlit as st
 
+from echomonitor.models.availability import (
+    RouteAvailability,
+    parse_active_alert_count,
+    parse_route_availability,
+    parse_routes,
+)
+from echomonitor.models.conflicts import parse_conflicts
 from echomonitor.models.monitoring import (
     DashboardSnapshot,
     StaticStatistics,
@@ -18,6 +26,24 @@ from echomonitor.session.state import logout
 
 REFRESH_INTERVAL = "30s"
 CARD_HEIGHT = 150
+
+
+@dataclass(frozen=True, slots=True)
+class RealtimeAvailabilitySnapshot:
+    """Aggregated GTFS-RT availability metrics for the dashboard."""
+
+    active_alert_count: int
+    realtime_percentage: float
+    vehicle_percentage: float
+
+
+@dataclass(frozen=True, slots=True)
+class DashboardViewSnapshot:
+    """Complete dashboard snapshot assembled from monitoring endpoints."""
+
+    monitoring: DashboardSnapshot
+    realtime: RealtimeAvailabilitySnapshot
+    disturbed_datasource_count: int
 
 
 def render_dashboard(client: ApiClient) -> None:
@@ -41,26 +67,123 @@ def _render_dashboard_content(client: ApiClient) -> None:
         st.error(str(exc))
         return
 
+    st.subheader("GTFS-RT Availability")
+    _render_realtime_availability_cards(snapshot.realtime)
+
+    st.write("")
     st.subheader("GTFS Static Import")
-    _render_import_details(snapshot.static)
-    _render_static_object_cards(snapshot.static)
+    _render_import_details(snapshot.monitoring.static)
+    _render_static_object_cards(snapshot.monitoring.static)
 
     st.write("")
     st.subheader("Data Sources")
-    _render_datasource_cards(snapshot.active_datasource_count)
+    _render_datasource_cards(
+        snapshot.monitoring.active_datasource_count,
+        snapshot.disturbed_datasource_count,
+    )
 
     st.caption("Dashboard data refreshes automatically every 30 seconds.")
 
 
-def _load_dashboard_snapshot(client: ApiClient) -> DashboardSnapshot:
+def _load_dashboard_snapshot(client: ApiClient) -> DashboardViewSnapshot:
     """Load all API data required by the dashboard."""
     statistics_payload = client.get_json("/api/monitoring/statistics")
     system_payload = client.get_json("/api/monitoring/system")
+    conflicts_payload = client.get_json("/api/monitoring/conflicts")
 
-    return DashboardSnapshot(
+    routes = parse_routes(system_payload)
+    availability = parse_route_availability(
+        statistics_payload,
+        routes,
+    )
+
+    monitoring_snapshot = DashboardSnapshot(
         static=parse_static_statistics(statistics_payload),
         active_datasource_count=parse_datasource_count(system_payload),
     )
+    realtime_snapshot = RealtimeAvailabilitySnapshot(
+        active_alert_count=parse_active_alert_count(statistics_payload),
+        realtime_percentage=_calculate_overall_percentage(
+            availability,
+            numerator="realtime",
+        ),
+        vehicle_percentage=_calculate_overall_percentage(
+            availability,
+            numerator="vehicle",
+        ),
+    )
+
+    conflicts = parse_conflicts(conflicts_payload)
+    disturbed_datasource_count = len(
+        {
+            conflict.datasource_id
+            for conflict in conflicts
+            if conflict.code == 1001
+        }
+    )
+
+    return DashboardViewSnapshot(
+        monitoring=monitoring_snapshot,
+        realtime=realtime_snapshot,
+        disturbed_datasource_count=disturbed_datasource_count,
+    )
+
+
+def _calculate_overall_percentage(
+    availability: tuple[RouteAvailability, ...],
+    *,
+    numerator: str,
+) -> float:
+    """Calculate weighted GTFS-RT availability across all routes."""
+    total_running_trips = sum(
+        item.num_running_trips
+        for item in availability
+    )
+    if total_running_trips <= 0:
+        return 0.0
+
+    if numerator == "realtime":
+        available_trips = sum(
+            item.num_realtime_trips
+            for item in availability
+        )
+    elif numerator == "vehicle":
+        available_trips = sum(
+            item.num_vehicles
+            for item in availability
+        )
+    else:
+        raise ValueError(f"Unsupported availability numerator: {numerator}")
+
+    return min(
+        max((available_trips / total_running_trips) * 100.0, 0.0),
+        100.0,
+    )
+
+
+def _render_realtime_availability_cards(
+    snapshot: RealtimeAvailabilitySnapshot,
+) -> None:
+    """Render aggregated GTFS-RT availability KPIs."""
+    columns = st.columns(3, gap="medium")
+
+    with columns[0]:
+        _render_metric_card(
+            "Active Service Alerts",
+            snapshot.active_alert_count,
+        )
+
+    with columns[1]:
+        _render_metric_card(
+            "Realtime Availability",
+            f"{snapshot.realtime_percentage:.1f}%",
+        )
+
+    with columns[2]:
+        _render_metric_card(
+            "Vehicle Availability",
+            f"{snapshot.vehicle_percentage:.1f}%",
+        )
 
 
 def _render_import_details(statistics: StaticStatistics) -> None:
@@ -85,14 +208,25 @@ def _render_import_details(statistics: StaticStatistics) -> None:
 
 
 def _render_detail_row(label: str, value: str) -> None:
-    """Render a compact label-value row without a card or icon."""
-    label_column, value_column = st.columns([1, 4], gap="medium")
-
-    with label_column:
-        st.markdown(f"**{label}**")
-
-    with value_column:
-        st.markdown(value)
+    """Render a compact GTFS Static label-value row."""
+    st.html(
+        f"""
+        <div style="
+            display: grid;
+            grid-template-columns: 11.5rem max-content;
+            column-gap: 0.75rem;
+            align-items: baseline;
+            margin: 0.2rem 0;
+        ">
+            <div style="font-weight: 600;">
+                {label}
+            </div>
+            <div>
+                {value}
+            </div>
+        </div>
+        """
+    )
 
 
 def _render_static_object_cards(statistics: StaticStatistics) -> None:
@@ -111,22 +245,75 @@ def _render_static_object_cards(statistics: StaticStatistics) -> None:
             _render_metric_card(label, value)
 
 
-def _render_datasource_cards(active_datasource_count: int) -> None:
+def _render_datasource_cards(
+    active_datasource_count: int,
+    disturbed_datasource_count: int,
+) -> None:
     """Render datasource KPIs in their own section."""
     columns = st.columns(4, gap="medium")
 
     with columns[0]:
         _render_metric_card("Activated Data Sources", active_datasource_count)
 
+    if disturbed_datasource_count > 0:
+        with columns[1]:
+            _render_disturbed_datasource_card(disturbed_datasource_count)
 
-def _render_metric_card(label: str, value: int) -> None:
+
+def _render_disturbed_datasource_card(disturbed_datasource_count: int) -> None:
+    """Render a subtly highlighted card for datasource failures."""
+    st.html(
+        f"""
+        <div style="
+            min-height: {CARD_HEIGHT}px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 1rem 1.1rem;
+            border: 1px solid #E7B1B1;
+            border-left: 4px solid #C96B6B;
+            border-radius: 0.75rem;
+            background: #FDECEC;
+        ">
+            <div style="
+                font-size: 0.875rem;
+                color: rgba(49, 51, 63, 0.72);
+                margin-bottom: 0.2rem;
+            ">
+                Erroneous Data Sources
+            </div>
+            <div style="
+                font-size: 2.25rem;
+                line-height: 1.1;
+                font-weight: 600;
+                color: #4A2F2F;
+                margin-bottom: 0.55rem;
+            ">
+                {disturbed_datasource_count:,}
+            </div>
+            <div style="
+                font-size: 0.8rem;
+                line-height: 1.35;
+                color: rgba(74, 47, 47, 0.72);
+            ">
+                These data sources currently have a Datasource Failure conflict.
+            </div>
+        </div>
+        """
+    )
+
+
+def _render_metric_card(label: str, value: int | str) -> None:
     """Render a consistent KPI card."""
+    formatted_value = f"{value:,}" if isinstance(value, int) else value
+
     with st.container(
         border=True,
         height=CARD_HEIGHT,
         vertical_alignment="center",
     ):
-        st.metric(label, f"{value:,}")
+        st.metric(label, formatted_value)
 
 
 def _format_import_timestamp(timestamp: datetime | None) -> str:
