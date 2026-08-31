@@ -9,6 +9,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from echomonitor.components.metric_card import render_metric_card
 from echomonitor.components.charts import render_scrollable_x_chart
 from echomonitor.models.availability import (
     MonitoringRoute,
@@ -125,7 +126,9 @@ def _render_availability_content(
 
     render_scrollable_x_chart(
         _build_availability_chart(availability),
+        category_count=len(availability),
         minimum_category_width=7,
+        key="availability_route_chart",
     )
 
     st.write("")
@@ -140,12 +143,12 @@ def _render_alerts(active_alert_count: int) -> None:
 
     columns = st.columns(4, gap="medium")
     with columns[0]:
-        with st.container(
-            border=True,
-            height=150,
-            vertical_alignment="center",
-        ):
-            st.metric("Active Service Alerts", f"{active_alert_count:,}")
+        render_metric_card(
+            "Active Service Alerts",
+            f"{active_alert_count:,}",
+            icon="notifications_active",
+            key="availability_active_alerts_card",
+        )
 
 
 def _build_availability_chart(
@@ -303,27 +306,35 @@ def _render_details(
     columns = st.columns(4, gap="medium")
 
     with columns[0]:
-        _render_detail_metric_card(
+        render_metric_card(
             "Currently Running Trips",
             f"{running_trips:,}",
+            icon="schedule",
+            key="availability_running_trips_card",
         )
 
     with columns[1]:
-        _render_detail_metric_card(
+        render_metric_card(
             "Realtime Availability",
             f"{realtime_percentage:.1f}%",
+            icon="sensors",
+            key="availability_realtime_card",
         )
 
     with columns[2]:
-        _render_detail_metric_card(
+        render_metric_card(
             "Monitored",
             f"{monitored_percentage:.1f}%",
+            icon="monitoring",
+            key="availability_monitored_card",
         )
 
     with columns[3]:
-        _render_detail_metric_card(
+        render_metric_card(
             "Vehicle Availability",
             f"{vehicle_percentage:.1f}%",
+            icon="directions_bus",
+            key="availability_vehicle_card",
         )
 
     st.write("")
@@ -480,16 +491,6 @@ def _filter_availability(
         for item in availability
         if item.route_id == route_id
     )
-
-
-def _render_detail_metric_card(label: str, value: str) -> None:
-    """Render one equal-width detail KPI card."""
-    with st.container(
-        border=True,
-        height=150,
-        vertical_alignment="center",
-    ):
-        st.metric(label, value)
 
 
 def _calculate_percentage(

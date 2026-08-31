@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import streamlit as st
 
+from echomonitor.components.metric_card import render_metric_card
 from echomonitor.models.availability import (
     RouteAvailability,
     parse_active_alert_count,
@@ -25,7 +26,6 @@ from echomonitor.services.api_client import ApiClient, ApiError
 from echomonitor.session.state import logout
 
 REFRESH_INTERVAL = "30s"
-CARD_HEIGHT = 150
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,21 +168,27 @@ def _render_realtime_availability_cards(
     columns = st.columns(3, gap="medium")
 
     with columns[0]:
-        _render_metric_card(
+        render_metric_card(
             "Active Service Alerts",
-            snapshot.active_alert_count,
+            f"{snapshot.active_alert_count:,}",
+            icon="notifications_active",
+            key="dashboard_active_alerts_card",
         )
 
     with columns[1]:
-        _render_metric_card(
+        render_metric_card(
             "Realtime Availability",
             f"{snapshot.realtime_percentage:.1f}%",
+            icon="sensors",
+            key="dashboard_realtime_availability_card",
         )
 
     with columns[2]:
-        _render_metric_card(
+        render_metric_card(
             "Vehicle Availability",
             f"{snapshot.vehicle_percentage:.1f}%",
+            icon="directions_bus",
+            key="dashboard_vehicle_availability_card",
         )
 
 
@@ -240,9 +246,26 @@ def _render_static_object_cards(statistics: StaticStatistics) -> None:
         ("Trips", statistics.num_trips),
     )
 
-    for column, (label, value) in zip(columns, metrics, strict=True):
+    icons = (
+        "business",
+        "route",
+        "location_on",
+        "directions",
+    )
+
+    for column, (label, value), icon in zip(
+        columns,
+        metrics,
+        icons,
+        strict=True,
+    ):
         with column:
-            _render_metric_card(label, value)
+            render_metric_card(
+                label,
+                f"{value:,}",
+                icon=icon,
+                key=f"dashboard_static_{label.lower()}_card",
+            )
 
 
 def _render_datasource_cards(
@@ -253,7 +276,12 @@ def _render_datasource_cards(
     columns = st.columns(4, gap="medium")
 
     with columns[0]:
-        _render_metric_card("Activated Data Sources", active_datasource_count)
+        render_metric_card(
+            "Activated Data Sources",
+            f"{active_datasource_count:,}",
+            icon="database",
+            key="dashboard_activated_datasources_card",
+        )
 
     if disturbed_datasource_count > 0:
         with columns[1]:
@@ -261,60 +289,14 @@ def _render_datasource_cards(
 
 
 def _render_disturbed_datasource_card(disturbed_datasource_count: int) -> None:
-    """Render a subtly highlighted card for datasource failures."""
-    st.html(
-        f"""
-        <div style="
-            min-height: {CARD_HEIGHT}px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 1rem 1.1rem;
-            border: 1px solid #E7B1B1;
-            border-left: 4px solid #C96B6B;
-            border-radius: 0.75rem;
-            background: #FDECEC;
-        ">
-            <div style="
-                font-size: 0.875rem;
-                color: rgba(49, 51, 63, 0.72);
-                margin-bottom: 0.2rem;
-            ">
-                Erroneous Data Sources
-            </div>
-            <div style="
-                font-size: 2.25rem;
-                line-height: 1.1;
-                font-weight: 600;
-                color: #4A2F2F;
-                margin-bottom: 0.55rem;
-            ">
-                {disturbed_datasource_count:,}
-            </div>
-            <div style="
-                font-size: 0.8rem;
-                line-height: 1.35;
-                color: rgba(74, 47, 47, 0.72);
-            ">
-                These data sources currently have a Datasource Failure conflict.
-            </div>
-        </div>
-        """
+    """Render a highlighted card for datasource failures."""
+    render_metric_card(
+        "Erroneous Data Sources",
+        f"{disturbed_datasource_count:,}",
+        icon="error",
+        key="dashboard_erroneous_datasources_card",
+        tone="error",
     )
-
-
-def _render_metric_card(label: str, value: int | str) -> None:
-    """Render a consistent KPI card."""
-    formatted_value = f"{value:,}" if isinstance(value, int) else value
-
-    with st.container(
-        border=True,
-        height=CARD_HEIGHT,
-        vertical_alignment="center",
-    ):
-        st.metric(label, formatted_value)
-
 
 def _format_import_timestamp(timestamp: datetime | None) -> str:
     if timestamp is None:

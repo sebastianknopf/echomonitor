@@ -72,7 +72,17 @@ def _render_navigation() -> None:
         if st.button(
             item,
             key=f"nav_{item.lower().replace(' ', '_')}",
-            type="primary" if st.session_state[PAGE_KEY] == item else "tertiary",
+            type=(
+                "primary"
+                if (
+                    st.session_state[PAGE_KEY] == item
+                    or (
+                        item == "Conflicts"
+                        and st.session_state[PAGE_KEY] == "All Conflicts"
+                    )
+                )
+                else "tertiary"
+            ),
             width="stretch",
         ):
             st.session_state[PAGE_KEY] = item

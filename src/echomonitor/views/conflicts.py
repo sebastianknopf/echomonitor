@@ -10,6 +10,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from echomonitor.components.metric_card import render_metric_card
 from echomonitor.components.charts import render_scrollable_x_chart
 from echomonitor.models.conflicts import (
     CONFLICT_TYPE_CODES,
@@ -62,7 +63,9 @@ def _render_conflicts_content(client: ApiClient) -> None:
 
     render_scrollable_x_chart(
         _build_conflict_matrix(data_sources, conflicts),
+        category_count=len(CONFLICT_TYPE_CODES),
         minimum_category_width=75,
+        key="conflicts_distribution_chart",
     )
 
     st.write("")
@@ -99,10 +102,20 @@ def _render_compact_conflict_details(
 
     columns = st.columns(2, gap="medium")
     with columns[0]:
-        _render_conflict_metric_card("Errors", error_count)
+        render_metric_card(
+            "Errors",
+            f"{error_count:,}",
+            icon="error",
+            key="conflicts_errors_card",
+        )
 
     with columns[1]:
-        _render_conflict_metric_card("Warnings", warning_count)
+        render_metric_card(
+            "Warnings",
+            f"{warning_count:,}",
+            icon="warning",
+            key="conflicts_warnings_card",
+        )
 
     st.write("")
     _render_conflict_list_toolbar()
@@ -233,16 +246,6 @@ def _render_conflict_list_toolbar() -> None:
         ):
             st.session_state[PAGE_KEY] = ALL_CONFLICTS_PAGE
             st.rerun()
-
-def _render_conflict_metric_card(label: str, value: int) -> None:
-    """Render one conflict KPI card."""
-    with st.container(
-        border=True,
-        height=150,
-        vertical_alignment="center",
-    ):
-        st.metric(label, f"{value:,}")
-
 
 def _build_conflict_matrix(
     data_sources: tuple[DataSource, ...],
