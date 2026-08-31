@@ -10,6 +10,7 @@ from echomonitor.components.loading import loading_screen
 from echomonitor.models.monitoring import parse_instance
 from echomonitor.services.api_client import ApiClient, ApiError
 from echomonitor.session.state import logout
+from echomonitor.views.all_conflicts import render_all_conflicts
 from echomonitor.views.availability import render_availability
 from echomonitor.views.dashboard import render_dashboard
 from echomonitor.views.conflicts import render_conflicts
@@ -41,6 +42,7 @@ def render_main_view(client: ApiClient) -> None:
             "Dashboard": render_dashboard,
             "Availability": render_availability,
             "Conflicts": render_conflicts,
+            "All Conflicts": render_all_conflicts,
         }
         renderers.get(page, render_dashboard)(client)
 
