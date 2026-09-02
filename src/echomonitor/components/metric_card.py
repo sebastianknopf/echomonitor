@@ -20,9 +20,7 @@ def render_metric_card(
     caption: str | None = None,
     tone: MetricCardTone = "default",
 ) -> None:
-    """Render a responsive metric card with a Material Design icon."""
-    _render_responsive_card_style(key)
-
+    """Render a metric card with a Material Design icon."""
     if tone == "error":
         _render_error_card_style(key)
 
@@ -48,38 +46,6 @@ def render_metric_card(
                 f"### :primary[:material/{icon}:]",
                 text_alignment="right",
             )
-
-
-def _render_responsive_card_style(key: str) -> None:
-    """Keep card content on one row and hide icons on narrow screens."""
-    st.html(
-        f"""
-        <style>
-        .st-key-{key} [data-testid="stHorizontalBlock"] {{
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-        }}
-
-        .st-key-{key} [data-testid="stColumn"] {{
-            min-width: 0 !important;
-        }}
-
-        @media (max-width: 640px) {{
-            .st-key-{key} [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:last-child {{
-                display: none !important;
-            }}
-
-            .st-key-{key} [data-testid="stHorizontalBlock"]
-            > [data-testid="stColumn"]:first-child {{
-                flex: 1 1 100% !important;
-                width: 100% !important;
-                max-width: 100% !important;
-            }}
-        }}
-        </style>
-        """
-    )
 
 
 def _render_error_card_style(key: str) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from echomonitor.components.metric_card import render_metric_card
 from echomonitor.models.conflicts import (
     CONFLICT_TYPE_CODES,
     CONFLICT_TYPE_NAMES,
@@ -130,6 +131,34 @@ def _render_filters_and_conflicts(
         level=selected_level,
         conflict_type=selected_conflict_type,
     )
+
+    error_count = sum(
+        conflict_severity(conflict.code) == "Error"
+        for conflict in filtered_conflicts
+    )
+    warning_count = sum(
+        conflict_severity(conflict.code) == "Warning"
+        for conflict in filtered_conflicts
+    )
+
+    st.write("")
+    metric_columns = st.columns(4, gap="medium")
+
+    with metric_columns[0]:
+        render_metric_card(
+            "Errors",
+            f"{error_count:,}",
+            icon="error",
+            key="all_conflicts_errors_card",
+        )
+
+    with metric_columns[1]:
+        render_metric_card(
+            "Warnings",
+            f"{warning_count:,}",
+            icon="warning",
+            key="all_conflicts_warnings_card",
+        )
 
     st.write("")
     render_conflict_list(filtered_conflicts)

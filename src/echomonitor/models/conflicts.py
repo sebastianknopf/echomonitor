@@ -9,14 +9,16 @@ from typing import Any
 
 CONFLICT_TYPE_NAMES: dict[int, str] = {
     1001: "Datasource Failure",
-    1002: "No Route Found",
+    1005: "No Agency Found",
     1003: "No Stop Found",
+    1002: "No Route Found",
     1004: "No Trip Found",
     2001: "Implied Additional Stop",
     2002: "Implied Canceled Stop",
     2003: "Wrong Quay",
-    2004: "Route No Global Id",
+    2008: "Agency No Global Id",
     2005: "Stop No Global Id",
+    2004: "Route No Global Id",
     2006: "Trip No Global Id",
     2007: "Premature Departure",
 }
